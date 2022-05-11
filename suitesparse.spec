@@ -1,8 +1,8 @@
 Name:           suitesparse
 Version:        4.4.6
-Release:        17
+Release:        18
 Summary:        Sparse Matrix Collection
-License:        (LGPLv2+ or BSD) and LGPLv2+ and GPLv2+
+License:        Apache-2.0 and BSD-2-Clause and LGPL-2.0-or-later and GPL-2.0-or-later
 URL:            http://faculty.cse.tamu.edu/davis/suitesparse.html
 Source0:        http://faculty.cse.tamu.edu/davis/SuiteSparse/SuiteSparse-%{version}.tar.gz
 BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink
@@ -290,5 +290,8 @@ done
 %doc Doc/*
 
 %changelog
+* Tue May 10 2022 chenchen <chen_aka_jan@163.com> - 4.4.6-18
+- License compliance rectification
+
 * Mon Dec 23 2019 gulining<gulining1@huawei.com> - 4.4.6-17
 - Pakcage init
