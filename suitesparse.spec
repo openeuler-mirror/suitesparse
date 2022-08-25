@@ -1,11 +1,11 @@
 Name:           suitesparse
 Version:        5.10.1
-Release:        1
+Release:        2
 Summary:        Sparse Matrix Collection
 License:        (LGPLv2+ or BSD) and LGPLv2+ and GPLv2+
 URL:            http://faculty.cse.tamu.edu/davis/suitesparse.html
 Source0:        http://faculty.cse.tamu.edu/davis/SuiteSparse/SuiteSparse-%{version}.tar.gz
-BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink lapack-devel openblas-devel metis-devel
+BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink lapack-devel openblas-devel metis-devel chrpath
 Obsoletes:      umfpack <= 5.0.1 ufsparse <= 2.1.1
 Provides:       ufsparse = %{version}-%{release}
 
@@ -193,6 +193,12 @@ find */ -iname lesser.txt -o -iname lesserv3.txt -o -iname license.txt -o \
     done
 hardlink -cv Docs/ Licenses/
 
+file `find %{buildroot}/%{_libdir} -type f` | grep -w ELF  |awk -F: '{print $1}' | xargs chrpath -d
+
+mkdir -p %{buildroot}/etc/ld.so.conf.d
+
+echo "/home/abuild/rpmbuild/BUILD/SuiteSparse-%{version}/lib" > %{buildroot}/etc/ld.so.conf.d/%{name}-%{_arch}.conf
+
 %check
 export AUTOCC=no
 export CC=gcc
@@ -204,11 +210,17 @@ export BLAS=-lopenblas
 for d in $TESTDIRS ; do
     %make_build -C $d/Demo CFLAGS="$CFLAGS" LIB="%{?__global_ldflags} -lm -lrt" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX" SPQR_CONFIG=-DHAVE_TBB TBB=-ltbb
 done
- 
+
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig
 
 %files
 %doc Licenses
 %{_libdir}/lib*.so.*
+%config(noreplace) /etc/ld.so.conf.d/*
 
 %files devel
 %{_includedir}/suitesparse
@@ -219,6 +231,9 @@ done
 %doc Doc/*
 
 %changelog
+* Thu Aug 25 2022 liyanan <liyanan32@h-partners.com> - 5.10.1-2
+- fix rpath problem
+
 * Thu May 19 2022 baizhonggui <baizhonggui@h-partners.com> - 5.10.1-1
 - Upgrade to version 5.10.1
 
