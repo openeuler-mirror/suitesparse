@@ -1,11 +1,11 @@
 Name:           suitesparse
-Version:        4.4.6
-Release:        17
+Version:        5.10.1
+Release:        1
 Summary:        Sparse Matrix Collection
 License:        (LGPLv2+ or BSD) and LGPLv2+ and GPLv2+
 URL:            http://faculty.cse.tamu.edu/davis/suitesparse.html
 Source0:        http://faculty.cse.tamu.edu/davis/SuiteSparse/SuiteSparse-%{version}.tar.gz
-BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink
+BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink lapack-devel openblas-devel metis-devel chrpath
 Obsoletes:      umfpack <= 5.0.1 ufsparse <= 2.1.1
 Provides:       ufsparse = %{version}-%{release}
 
@@ -47,239 +47,180 @@ Obsoletes:      suitesparse-doc < %{version}-%{release}
 Files for help with suitesparse.
 
 %prep
-%autosetup -n SuiteSparse -p1
+%autosetup -n SuiteSparse-%{version} -p1
+rm -r metis*
+ln -s %{_includedir}/metis/*.h include/
 for fil in $(grep -Frl 'pragma ivdep' .); do
-  sed -i 's/pragma ivdep/pragma GCC ivdep/' $fil
+  sed -i.orig 's/pragma ivdep/pragma GCC ivdep/' $fil
+  touch -r ${fil}.orig $fil
+  rm -f ${fil}.orig
 done
-sed -i '/^  CF =/ s/ -O3 -fexceptions//' SuiteSparse_config/SuiteSparse_config.mk
+
+sed -i -e '/^  CF =/ s/ -O3 -fexceptions//' SuiteSparse_config/SuiteSparse_config.mk
 
 %build
+export AUTOCC=no
+export CC=gcc
 install -d Doc/{AMD,BTF,CAMD,CCOLAMD,CHOLMOD,COLAMD,KLU,LDL,UMFPACK,SPQR,RBio} Lib Include
-cd SuiteSparse_config
-  %make_build CFLAGS="$RPM_OPT_FLAGS"
+export CFLAGS="$RPM_OPT_FLAGS -I%{_includedir}/metis"
+export LAPACK=""
+export BLAS=-lopenblas
+pushd SuiteSparse_config
+  %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
   ar x libsuitesparseconfig.a
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libsuitesparseconfig.so.4 -o libsuitesparseconfig.so.4.4.4 ../SuiteSparse_config/*.o -lm
-    ln -sf libsuitesparseconfig.so.4.4.4 libsuitesparseconfig.so.4
-    ln -sf libsuitesparseconfig.so.4.4.4 libsuitesparseconfig.so
-    install -D ../SuiteSparse_config/*.a ./
-  cd ../SuiteSparse_config
-  install -D *.h ../Include
-cd ..
+  cp -a *.a ../Lib
+  cp -p *.h ../Include
+popd
 
-cd AMD
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libamd.so.2 -o libamd.so.2.4.1 ../AMD/Lib/*.o libsuitesparseconfig.so.4 -lm
-    ln -sf libamd.so.2.4.1 libamd.so.2
-    ln -sf libamd.so.2.4.1 libamd.so
-    install -D ../AMD/Lib/*.a ./
-  cd ../AMD
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/License.txt Doc/lesser.txt Doc/ChangeLog Doc/*.pdf ../Doc/AMD
-cd ..
+pushd AMD
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/License.txt Doc/lesser.txt Doc/ChangeLog Doc/*.pdf ../Doc/AMD
+popd
 
-cd BTF
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libbtf.so.1 -o libbtf.so.1.2.1 ../BTF/Lib/*.o
-    ln -sf libbtf.so.1.2.1 libbtf.so.1
-    ln -sf libbtf.so.1.2.1 libbtf.so
-    install -D ../BTF/Lib/*.a ./
-  cd ../BTF
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/* ../Doc/BTF
-cd ..
+pushd BTF
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/* ../Doc/BTF
+popd
 
-cd CAMD
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libcamd.so.2 -o libcamd.so.2.4.1 ../CAMD/Lib/*.o libsuitesparseconfig.so.4 -lm
-    ln -sf libcamd.so.2.4.1 libcamd.so.2
-    ln -sf libcamd.so.2.4.1 libcamd.so
-    install -D ../CAMD/Lib/*.a ./
-  cd ../CAMD
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/ChangeLog Doc/License Doc/*.pdf ../Doc/CAMD
-cd ..
+pushd CAMD
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/ChangeLog Doc/License.txt Doc/*.pdf ../Doc/CAMD
+popd
 
-cd CCOLAMD
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libccolamd.so.2 -o libccolamd.so.2.9.1 ../CCOLAMD/Lib/*.o libsuitesparseconfig.so.4 -lm
-    ln -sf libccolamd.so.2.9.1 libccolamd.so.2
-    ln -sf libccolamd.so.2.9.1 libccolamd.so
-    install -D ../CCOLAMD/Lib/*.a ./
-  cd ../CCOLAMD
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/* ../Doc/CCOLAMD
-cd ..
+pushd CCOLAMD
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/* ../Doc/CCOLAMD
+popd
 
-cd COLAMD
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libcolamd.so.2 -o libcolamd.so.2.9.1 ../COLAMD/Lib/*.o libsuitesparseconfig.so.4 -lm
-    ln -sf libcolamd.so.2.9.1 libcolamd.so.2
-    ln -sf libcolamd.so.2.9.1 libcolamd.so
-    install -D ../COLAMD/Lib/*.a ./
-  cd ../COLAMD
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/* ../Doc/COLAMD
-cd ..
+pushd COLAMD
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/* ../Doc/COLAMD
+popd
 
-CHOLMOD_FLAGS="$RPM_OPT_FLAGS -DNPARTITION"
-cd CHOLMOD
-  cd Lib
-    %make_build CFLAGS="$CHOLMOD_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libcholmod.so.3 -o libcholmod.so.3.0.6 ../CHOLMOD/Lib/*.o \
-        -lopenblas libamd.so.2 libcamd.so.2 libcolamd.so.2 libccolamd.so.2 libsuitesparseconfig.so.4 -lm
-    ln -sf libcholmod.so.3.0.6 libcholmod.so.3
-    ln -sf libcholmod.so.3.0.6 libcholmod.so
-    install -D ../CHOLMOD/Lib/*.a ./
-  cd ../CHOLMOD
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/*.pdf ../Doc/CHOLMOD
-  install -D Cholesky/License.txt ../Doc/CHOLMOD/Cholesky_License.txt
-  install -D Core/License.txt ../Doc/CHOLMOD/Core_License.txt
-  install -D MatrixOps/License.txt ../Doc/CHOLMOD/MatrixOps_License.txt
-  install -D Partition/License.txt ../Doc/CHOLMOD/Partition_License.txt
-  install -D Supernodal/License.txt ../Doc/CHOLMOD/Supernodal_License.txt
-cd ..
+pushd CHOLMOD
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/*.pdf ../Doc/CHOLMOD
+  cp -p Cholesky/lesser.txt ../Doc/CHOLMOD/Cholesky_License.txt
+  cp -p Core/lesser.txt ../Doc/CHOLMOD/Core_License.txt
+  cp -p MatrixOps/gpl.txt ../Doc/CHOLMOD/MatrixOps_License.txt
+  cp -p Partition/lesser.txt ../Doc/CHOLMOD/Partition_License.txt
+  cp -p Supernodal/gpl.txt ../Doc/CHOLMOD/Supernodal_License.txt
+popd
 
-cd CXSparse
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libcxsparse.so.3 -o libcxsparse.so.3.1.4 ../CXSparse/Lib/*.o -lm
-    ln -sf libcxsparse.so.3.1.4 libcxsparse.so.3
-    ln -sf libcxsparse.so.3.1.4 libcxsparse.so
-    install -D ../CXSparse/Lib/*.a ./
-  cd ../CXSparse
-  install -D Include/cs.h ../Include
-  install -d ../Doc/CXSparse/
-  install -D Doc/* ../Doc/CXSparse
-cd ..
+pushd CXSparse
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/cs.h ../Include
+  mkdir ../Doc/CXSparse/
+  cp -p Doc/* ../Doc/CXSparse
+popd
 
-cd KLU
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libklu.so.1 -o libklu.so.1.3.3 ../KLU/Lib/*.o \
-        libamd.so.2 libcolamd.so.2 libbtf.so.1 libsuitesparseconfig.so.4
-    ln -sf libklu.so.1.3.3 libklu.so.1
-    ln -sf libklu.so.1.3.3 libklu.so
-    install -D ../KLU/Lib/*.a ./
-  cd ../KLU
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/lesser.txt ../Doc/KLU
-cd ..
+pushd KLU
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/lesser.txt ../Doc/KLU
+popd
 
-cd LDL
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libldl.so.2 -o libldl.so.2.2.1 ../LDL/Lib/*.o
-    ln -sf libldl.so.2.2.1 libldl.so.2
-    ln -sf libldl.so.2.2.1 libldl.so
-    install -D ../LDL/Lib/*.a ./
-  cd ../LDL
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/ChangeLog Doc/lesser.txt Doc/*.pdf ../Doc/LDL
-cd ..
+pushd LDL
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/ChangeLog Doc/lesser.txt Doc/*.pdf ../Doc/LDL
+popd
 
-cd UMFPACK
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,libumfpack.so.5 -o libumfpack.so.5.7.1 ../UMFPACK/Lib/*.o \
-        -lopenblas libamd.so.2 libcholmod.so.3 libsuitesparseconfig.so.4 -lm
-    ln -sf libumfpack.so.5.7.1 libumfpack.so.5
-    ln -sf libumfpack.so.5.7.1 libumfpack.so
-    install -D ../UMFPACK/Lib/*.a ./
-  cd ../UMFPACK
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/License Doc/ChangeLog Doc/gpl.txt Doc/*.pdf ../Doc/UMFPACK
-cd ..
+pushd UMFPACK
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/License.txt Doc/ChangeLog Doc/gpl.txt Doc/*.pdf ../Doc/UMFPACK
+popd
 
-cd SPQR
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS -DHAVE_TBB -DNPARTITION"
-  cd ..
-  cd ../Lib
-    g++ -shared %{?__global_ldflags} -Wl,-soname,libspqr.so.2 -o libspqr.so.2.0.1 ../SPQR/Lib/*.o \
-        -lopenblas -ltbb libcholmod.so.3 libsuitesparseconfig.so.4 -lm
-    ln -sf libspqr.so.2.0.1 libspqr.so.2
-    ln -sf libspqr.so.2.0.1 libspqr.so
-    install -D ../SPQR/Lib/*.a ./
-  cd ../SPQR
-  install -D Include/*.h* ../Include
-  install -D README{,_SPQR}.txt
-  install -D README_SPQR.txt Doc/* ../Doc/SPQR
-cd ..
+pushd SPQR
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS -DHAVE_TBB -DNPARTITION" TBB=-ltbb BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h* ../Include
+  cp -p README{,_SPQR}.txt
+  cp -p README_SPQR.txt Doc/* ../Doc/SPQR
+popd
 
-cd RBio
-  cd Lib
-    %make_build CFLAGS="$RPM_OPT_FLAGS"
-  cd ..
-  cd ../Lib
-    gcc -shared %{?__global_ldflags} -Wl,-soname,librbio.so.2 -o \
-        librbio.so.2.2.1 ../RBio/Lib/*.o libsuitesparseconfig.so.4
-    ln -sf librbio.so.2.2.1 librbio.so.2
-    ln -sf librbio.so.2.2.1 librbio.so
-    install -D ../RBio/Lib/*.a ./
-  cd ../RBio
-  install -D Include/*.h ../Include
-  install -D README.txt Doc/ChangeLog Doc/License.txt ../Doc/RBio
-cd ..
+pushd RBio
+  pushd Lib
+    %make_build CFLAGS="$CFLAGS" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX"
+  popd
+  cp -p Include/*.h ../Include
+  cp -p README.txt Doc/ChangeLog Doc/License.txt ../Doc/RBio
+popd
 
 %install
-install -d ${RPM_BUILD_ROOT}%{_libdir}
-install -d ${RPM_BUILD_ROOT}%{_includedir}/%{name}
-cd Lib
-  for f in *.a *.so*; do
-    cp -a $f ${RPM_BUILD_ROOT}%{_libdir}/$f
-  done
-cd ..
+mkdir -p ${RPM_BUILD_ROOT}%{_libdir}
+mkdir -p ${RPM_BUILD_ROOT}%{_includedir}/%{name}
+cp -a Include/*.{h,hpp} ${RPM_BUILD_ROOT}%{_includedir}/%{name}/
+cp -a Lib/*.a */Lib/*.a lib/*.so* ${RPM_BUILD_ROOT}%{_libdir}/
 chmod 755 ${RPM_BUILD_ROOT}%{_libdir}/*.so.*
-cd Include
-  for f in *.h *.hpp;  do
-    cp -a $f ${RPM_BUILD_ROOT}%{_includedir}/%{name}/$f
-  done
-cd ..
 rm -rf Licenses
-install -d Licenses
-find */ -iname lesser.txt -o -iname license.txt -o -iname gpl.txt -o -iname license | while read f
-    do
-        b="${f%%/*}";r="${f#$b}";x="$(echo "$r" | sed 's|/doc/|/|gi')"
+mkdir Licenses
+find */ -iname lesser.txt -o -iname lesserv3.txt -o -iname license.txt -o \
+    -iname gpl.txt -o -iname GPLv2.txt -o -iname license \
+    -a -not -type d | while read f; do
+        b="${f%%/*}"
+        r="${f#$b}"
+        x="$(echo "$r" | sed 's|/doc/|/|gi')"
         install -m0644 -D "$f" "./Licenses/$b/$x"
     done
 hardlink -cv Docs/ Licenses/
 
+file `find %{buildroot}/%{_libdir} -type f` | grep -w ELF  |awk -F: '{print $1}' | xargs chrpath -d
+
+mkdir -p %{buildroot}/etc/ld.so.conf.d
+
+echo "/home/abuild/rpmbuild/BUILD/SuiteSparse-%{version}/lib" > %{buildroot}/etc/ld.so.conf.d/%{name}-%{_arch}.conf
+
 %check
-TESTDIRS="AMD CAMD CCOLAMD CHOLMOD COLAMD KLU LDL SPQR RBio UMFPACK CXSparse"
+export AUTOCC=no
+export CC=gcc
+TESTDIRS="AMD CAMD CCOLAMD CHOLMOD COLAMD KLU LDL SPQR RBio UMFPACK"
+TESTDIRS="$TESTDIRS CXSparse"
+export CFLAGS="$RPM_OPT_FLAGS -I%{_includedir}/metis"
+export LAPACK=""
+export BLAS=-lopenblas 
 for d in $TESTDIRS ; do
-    make -C $d/Demo CFLAGS="$RPM_OPT_FLAGS" LAPACK="" SPQR_CONFIG=-DHAVE_TBB TBB=-ltbb
+    %make_build -C $d/Demo CFLAGS="$CFLAGS" LIB="%{?__global_ldflags} -lm -lrt" BLAS="$BLAS" LIBRARY_SUFFIX="$LIBRARY_SUFFIX" SPQR_CONFIG=-DHAVE_TBB TBB=-ltbb
 done
+
+%post
+/sbin/ldconfig
+
+%postun
+/sbin/ldconfig
 
 %files
 %doc Licenses
 %{_libdir}/lib*.so.*
+%config(noreplace) /etc/ld.so.conf.d/*
 
 %files devel
 %{_includedir}/suitesparse
@@ -290,5 +231,8 @@ done
 %doc Doc/*
 
 %changelog
+* Wed Oct 26 2022 wangkai <wangkai385@h-partners.com> - 5.10.1-1
+- Upgrade to version 5.10.1
+
 * Mon Dec 23 2019 gulining<gulining1@huawei.com> - 4.4.6-17
 - Pakcage init
