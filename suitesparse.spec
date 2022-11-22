@@ -1,10 +1,10 @@
 Name:           suitesparse
 Version:        5.10.1
-Release:        1
+Release:        2
 Summary:        Sparse Matrix Collection
 License:        (LGPLv2+ or BSD) and LGPLv2+ and GPLv2+
 URL:            http://faculty.cse.tamu.edu/davis/suitesparse.html
-Source0:        http://faculty.cse.tamu.edu/davis/SuiteSparse/SuiteSparse-%{version}.tar.gz
+Source0:        https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/v%{version}/SuiteSparse-%{version}.tar.gz
 BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink lapack-devel openblas-devel metis-devel chrpath
 Obsoletes:      umfpack <= 5.0.1 ufsparse <= 2.1.1
 Provides:       ufsparse = %{version}-%{release}
@@ -231,6 +231,9 @@ done
 %doc Doc/*
 
 %changelog
+* Mon Nov 21 2022 liyanan <liyanan32@h-partners.com>  - 5.10.1-2
+- Change source
+
 * Wed Oct 26 2022 wangkai <wangkai385@h-partners.com> - 5.10.1-1
 - Upgrade to version 5.10.1
 
