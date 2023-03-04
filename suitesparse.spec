@@ -1,11 +1,11 @@
 Name:           suitesparse
 Version:        5.10.1
-Release:        1
+Release:        2
 Summary:        Sparse Matrix Collection
 License:        (LGPLv2+ or BSD) and LGPLv2+ and GPLv2+
 URL:            http://faculty.cse.tamu.edu/davis/suitesparse.html
 Source0:        http://faculty.cse.tamu.edu/davis/SuiteSparse/SuiteSparse-%{version}.tar.gz
-BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink lapack-devel openblas-devel metis-devel
+BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink lapack-devel openblas-devel metis-devel chrpath
 Obsoletes:      umfpack <= 5.0.1 ufsparse <= 2.1.1
 Provides:       ufsparse = %{version}-%{release}
 
@@ -181,6 +181,7 @@ mkdir -p ${RPM_BUILD_ROOT}%{_includedir}/%{name}
 cp -a Include/*.{h,hpp} ${RPM_BUILD_ROOT}%{_includedir}/%{name}/
 cp -a Lib/*.a */Lib/*.a lib/*.so* ${RPM_BUILD_ROOT}%{_libdir}/
 chmod 755 ${RPM_BUILD_ROOT}%{_libdir}/*.so.*
+chrpath -d ${RPM_BUILD_ROOT}%{_libdir}/*.so.*
 rm -rf Licenses
 mkdir Licenses
 find */ -iname lesser.txt -o -iname lesserv3.txt -o -iname license.txt -o \
@@ -219,6 +220,9 @@ done
 %doc Doc/*
 
 %changelog
+* Fri Mar 03 2023 Ge Wang <wangge20@h-partners.com> - 5.10.1-2
+- Remove rpath
+
 * Thu May 19 2022 baizhonggui <baizhonggui@h-partners.com> - 5.10.1-1
 - Upgrade to version 5.10.1
 
