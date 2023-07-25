@@ -1,10 +1,11 @@
 Name:           suitesparse
 Version:        5.10.1
-Release:        2
+Release:        3
 Summary:        Sparse Matrix Collection
 License:        (LGPLv2+ or BSD) and LGPLv2+ and GPLv2+
 URL:            http://faculty.cse.tamu.edu/davis/suitesparse.html
 Source0:        http://faculty.cse.tamu.edu/davis/SuiteSparse/SuiteSparse-%{version}.tar.gz
+Patch0:         fix-clang.patch
 BuildRequires:  gcc-c++ openblas-devel tbb-devel hardlink lapack-devel openblas-devel metis-devel chrpath
 Obsoletes:      umfpack <= 5.0.1 ufsparse <= 2.1.1
 Provides:       ufsparse = %{version}-%{release}
@@ -59,8 +60,10 @@ done
 sed -i -e '/^  CF =/ s/ -O3 -fexceptions//' SuiteSparse_config/SuiteSparse_config.mk
 
 %build
-export AUTOCC=no
-export CC=gcc
+%if "%toolchain" != "clang"
+	export AUTOCC=no
+	export CC=gcc
+%endif
 install -d Doc/{AMD,BTF,CAMD,CCOLAMD,CHOLMOD,COLAMD,KLU,LDL,UMFPACK,SPQR,RBio} Lib Include
 export CFLAGS="$RPM_OPT_FLAGS -I%{_includedir}/metis"
 export LAPACK=""
@@ -195,8 +198,13 @@ find */ -iname lesser.txt -o -iname lesserv3.txt -o -iname license.txt -o \
 hardlink -cv Docs/ Licenses/
 
 %check
-export AUTOCC=no
-export CC=gcc
+%if "%toolchain" == "clang"
+	export CC=clang
+	export CXX=clang++
+%else
+	export AUTOCC=no
+	export CC=gcc
+%endif
 TESTDIRS="AMD CAMD CCOLAMD CHOLMOD COLAMD KLU LDL SPQR RBio UMFPACK"
 TESTDIRS="$TESTDIRS CXSparse"
 export CFLAGS="$RPM_OPT_FLAGS -I%{_includedir}/metis"
@@ -220,6 +228,9 @@ done
 %doc Doc/*
 
 %changelog
+* Tue Jul 25 2023 yoo <sunyuechi@iscas.ac.cn> - 5.10.1-3
+- fix clang build error
+
 * Fri Mar 03 2023 Ge Wang <wangge20@h-partners.com> - 5.10.1-2
 - Remove rpath
 
